@@ -2,25 +2,160 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f0f0f;
+  --card: #ffffff;
+  --card-foreground: #0f0f0f;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --primary: #013220;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --ring: #013220;
+  --radius: 0.5rem;
+  --success: #22c55e;
+  --warning: #f59e0b;
+}
+
+@theme {
+  --color-green-50:  #edf7f1;
+  --color-green-100: #ceeadb;
+  --color-green-200: #9dd4ba;
+  --color-green-300: #65b896;
+  --color-green-400: #399e75;
+  --color-green-500: #1f7a52;
+  --color-green-600: #013220;
+  --color-green-700: #022518;
+  --color-green-800: #011810;
+  --color-green-900: #010e09;
+  --color-green-950: #000805;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Inter', system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #09090b;
+  --card-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --border: #27272a;
+  --input: #27272a;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* ─── Landing Page Animations ────────────────────────────── */
+
+@keyframes orb-drift-1 {
+  0%, 100% { transform: translate(0, 0); }
+  25%       { transform: translate(30px, -20px); }
+  50%       { transform: translate(-20px, 30px); }
+  75%       { transform: translate(20px, 10px); }
+}
+
+@keyframes orb-drift-2 {
+  0%, 100% { transform: translate(0, 0); }
+  33%       { transform: translate(-30px, 20px); }
+  66%       { transform: translate(20px, -30px); }
+}
+
+@keyframes orb-drift-3 {
+  0%, 100% { transform: translate(0, 0); }
+  20%       { transform: translate(15px, 25px); }
+  40%       { transform: translate(-25px, -15px); }
+  60%       { transform: translate(30px, -20px); }
+  80%       { transform: translate(-10px, 20px); }
+}
+
+@keyframes particle-float {
+  0%, 100% { transform: translateY(0);    opacity: 0; }
+  20%       {                              opacity: 0.4; }
+  80%       {                              opacity: 0.4; }
+  90%       { transform: translateY(-60px); opacity: 0; }
+}
+
+@keyframes grid-pulse {
+  0%, 100% { opacity: 0.03; }
+  50%       { opacity: 0.07; }
+}
+
+@keyframes scan-sweep {
+  0%   { transform: translateX(-200px); }
+  100% { transform: translateX(100vw); }
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+.hero-scan {
+  width: 200px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--primary) 4%, transparent),
+    transparent
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-orb-1 {
+    animation: orb-drift-1 18s ease-in-out infinite;
+  }
+  .animate-orb-2 {
+    animation: orb-drift-2 22s ease-in-out infinite;
+  }
+  .animate-orb-3 {
+    animation: orb-drift-3 28s ease-in-out infinite;
+  }
+  .animate-grid-pulse {
+    animation: grid-pulse 6s ease-in-out infinite;
+  }
+  .animate-scan {
+    animation: scan-sweep 8s linear infinite;
+  }
+  .animate-particle {
+    animation: particle-float var(--particle-duration, 15s) ease-in-out infinite;
+    animation-delay: var(--particle-delay, 0s);
+  }
 }
