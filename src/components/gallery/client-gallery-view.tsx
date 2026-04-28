@@ -161,7 +161,7 @@ export function ClientGalleryView({ gallery, media }: ClientGalleryViewProps) {
       let thumb = full
       if (item.file_type === 'photo') {
         const { data: thumbData } = supabase.storage.from('gallery-media').getPublicUrl(item.file_url, {
-          transform: { width: 1600, quality: 90 },
+          transform: { width: 1600, quality: 90, resize: 'contain' },
         })
         thumb = thumbData.publicUrl
       }
@@ -893,7 +893,7 @@ export function ClientGalleryView({ gallery, media }: ClientGalleryViewProps) {
                     style={{ marginBottom: `${gapPx}px` }}
                   >
                     <div
-                      className={`relative overflow-hidden cursor-pointer group ${roundClass} ${isSelected ? 'brightness-90' : ''}`}
+                      className={`relative cursor-pointer group ${roundClass} ${isSelected ? 'brightness-90' : ''}`}
                       onClick={() => setLightboxIndex(index)}
                     >
                       <img
