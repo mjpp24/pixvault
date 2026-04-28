@@ -16,20 +16,30 @@ export function getRoundClass(gridRoundness: string | null | undefined): string 
   return ''
 }
 
+/** Layouts that use CSS Columns — photos flow at their own natural aspect ratio, zero borders */
+export function isNaturalLayout(layout: string): boolean {
+  return !layout || layout === 'classic-grid' || layout === 'film' || layout === 'duo' || layout === 'panoramic'
+}
+
 export function getLayoutContainerStyle(layout: string, gapPx: number): CSSProperties {
   const gap = `${gapPx}px`
+
+  // Natural: CSS Columns — each photo at its own ratio, no cropping, no borders
+  if (!layout || layout === 'classic-grid') return { columnCount: 3, columnGap: gap } as CSSProperties
+  if (layout === 'film')                    return { columnCount: 4, columnGap: gap } as CSSProperties
+  if (layout === 'duo')                     return { columnCount: 2, columnGap: gap } as CSSProperties
+  if (layout === 'panoramic')               return { columnCount: 1, columnGap: gap } as CSSProperties
+
+  // Fixed-ratio grid layouts
   const base: CSSProperties = { display: 'grid', gap }
   switch (layout) {
-    case 'duo':          return { ...base, gridTemplateColumns: 'repeat(2, 1fr)' }
-    case 'panoramic':   return { ...base, gridTemplateColumns: '1fr' }
-    case 'film':        return { ...base, gridTemplateColumns: 'repeat(4, 1fr)' }
     case 'masonry':
     case 'magazine':
     case 'spotlight':
     case 'editorial':
     case 'mosaic':
     case 'gallery-wall': return { ...base, gridTemplateColumns: 'repeat(3, 1fr)', gridAutoFlow: 'dense' }
-    default:             return { ...base, gridTemplateColumns: 'repeat(3, 1fr)' } // classic-grid
+    default:             return { columnCount: 3, columnGap: gap } as CSSProperties
   }
 }
 
@@ -38,7 +48,6 @@ export function getItemStyle(index: number, layout: string): CSSProperties {
     case 'masonry': {
       const col = index % 3
       if (col === 0) return { aspectRatio: '2/3' }
-      if (col === 1) return { aspectRatio: '3/4' }
       return { aspectRatio: '3/4' }
     }
     case 'magazine': {
@@ -68,9 +77,6 @@ export function getItemStyle(index: number, layout: string): CSSProperties {
       if (pos === 4) return { gridColumn: 'span 2', aspectRatio: '16/9' }
       return { aspectRatio: '3/4' }
     }
-    case 'panoramic': return { aspectRatio: '21/9' }
-    case 'film':      return { aspectRatio: '3/4' }
-    case 'duo':       return { aspectRatio: '3/4' }
-    default:          return { aspectRatio: '3/4' } // classic-grid
+    default: return {}
   }
 }
