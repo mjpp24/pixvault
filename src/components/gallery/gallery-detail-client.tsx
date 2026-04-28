@@ -835,13 +835,11 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
               {/* Photo grid — compact admin view: small tiles, no horizontal scroll */}
               {sortedMedia.length > 0 && (
                 <div className="px-3 pb-6">
-                  <div style={{ columnCount: 4, columnGap: '6px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '6px' }}>
                     {sortedMedia.map((item, index) => {
                       const url = getPublicUrl(item.file_url)
                       const ext = item.file_name.split('.').pop()?.toLowerCase() ?? ''
                       const isRawFile = RAW_EXTENSIONS.has(ext)
-                      // RAW files use stored JPEG thumbnail (no transform possible on RAW).
-                      // Regular photos always use Supabase transform for full sharpness.
                       const thumb = isRawFile && item.thumbnail_url
                         ? getPublicUrl(item.thumbnail_url)
                         : getThumbUrl(item.file_url)
@@ -850,33 +848,31 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
                       const hasThumb = !!item.thumbnail_url
 
                       return (
-                        <div key={item.id} className="group break-inside-avoid mb-1.5">
-                          <div className={`relative bg-gray-800 overflow-hidden ${roundClass}`}>
+                        <div key={item.id} className="group">
+                          {/* Image tile: aspect-ratio on this div, absolute inset-0 on the inner */}
+                          <div className="relative" style={{ aspectRatio: '3/4' }}>
+                          <div className={`absolute inset-0 bg-gray-800 overflow-hidden ${roundClass}`}>
                             {item.file_type === 'photo' ? (
                               isRawFile && !hasThumb ? (
-                                // RAW file — thumbnail being generated in background
                                 <div
-                                  className="w-full flex flex-col items-center justify-center bg-gray-100 cursor-pointer gap-2 animate-pulse"
-                                  style={{ aspectRatio: '3/4' }}
+                                  className="w-full h-full flex flex-col items-center justify-center bg-gray-100 cursor-pointer gap-2 animate-pulse"
                                   onClick={() => setLightboxIndex(index)}
                                 >
                                   <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 9.75h.008v.008H3V9.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                                   </svg>
-                                  <span className="text-[10px] font-bold tracking-widest text-gray-300 uppercase">
-                                    {ext.toUpperCase()}
-                                  </span>
+                                  <span className="text-[10px] font-bold tracking-widest text-gray-300 uppercase">{ext.toUpperCase()}</span>
                                 </div>
                               ) : (
                                 <img src={thumb} alt={item.file_name}
-                                  className="w-full h-auto block cursor-pointer group-hover:opacity-90 transition-opacity"
+                                  className="w-full h-full object-cover cursor-pointer group-hover:opacity-90 transition-opacity"
                                   onClick={() => setLightboxIndex(index)}
                                   loading="lazy"
                                   decoding="async"
                                 />
                               )
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gray-900 cursor-pointer"
+                              <div className="w-full h-full flex items-center justify-center bg-gray-900 cursor-pointer relative"
                                 onClick={() => setLightboxIndex(index)}>
                                 {thumb !== url && <img src={thumb} alt="" className="w-full h-full object-cover absolute inset-0 opacity-60" />}
                                 <Play className="w-8 h-8 text-white relative z-10" />
@@ -926,7 +922,8 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
                               </div>
                             )}
                           </div>
-                          {/* Filename below — like reference */}
+                          </div>{/* end aspect-ratio wrapper */}
+                          {/* Filename below tile */}
                           <p className="text-[10px] text-gray-400 mt-1 truncate text-center leading-tight px-0.5">
                             {item.file_name}
                           </p>
