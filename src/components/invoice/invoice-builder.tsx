@@ -216,21 +216,8 @@ export function InvoiceBuilder({
       const { error: itemsError } = await supabase.from('invoice_items').insert(itemsPayload)
       if (itemsError) throw itemsError
 
-      if (sendAfter) {
-        // Send email via API
-        const sendRes = await fetch(`/api/invoices/${invoiceId}/send`, { method: 'POST' })
-        const sendData = await sendRes.json()
-        if (!sendRes.ok) {
-          toast.warning(`Invoice saved, but email failed: ${sendData.error ?? 'Unknown error'}`)
-        } else if (sendData.warning) {
-          toast.warning(sendData.warning)
-        } else {
-          toast.success('Invoice saved and emailed to client!')
-        }
-      } else {
-        toast.success('Invoice saved as draft')
-      }
-      router.push(`/invoices/${invoiceId}`)
+      toast.success(sendAfter ? 'Invoice saved! Choose how to send it below.' : 'Invoice saved as draft')
+      router.push(`/invoices/${invoiceId}${sendAfter ? '?send=1' : ''}`)
     } catch (err) {
       toast.error('Failed to save invoice. Please try again.')
       console.error(err)
@@ -281,6 +268,7 @@ export function InvoiceBuilder({
           <Button size="sm" loading={isSaving} onClick={handleSubmit((data) => saveInvoice(data, true))}>
             <Send className="w-4 h-4" />
             <span className="hidden sm:inline">Save & Send</span>
+            <span className="sm:hidden">Send</span>
           </Button>
         </div>
       </div>

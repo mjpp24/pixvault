@@ -121,7 +121,8 @@ export function NotificationBell() {
   const requestReview = (notif: Notification) => {
     const slug = notif.galleries?.slug
     if (!slug) { toast.error('Gallery slug not available'); return }
-    setReviewModal({ link: `${window.location.origin}/review/${slug}`, clientName: notif.client_name })
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin
+    setReviewModal({ link: `${appUrl}/review/${slug}`, clientName: notif.client_name })
     setLinkCopied(false)
   }
 

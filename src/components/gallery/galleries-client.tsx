@@ -82,9 +82,9 @@ function CalendarPicker({
   while (cells.length % 7 !== 0) cells.push({ date: new Date(viewYear, viewMonth + 1, cells.length - daysInMonth - firstDay + 1), current: false })
 
   return (
-    <div className="flex gap-0 min-w-[520px]">
+    <div className="flex flex-col sm:flex-row gap-0 sm:min-w-[520px]">
       {/* Calendar */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 min-w-[280px]">
         <div className="flex items-center justify-between mb-3">
           <button onClick={prevMonth} className="p-1 hover:text-gray-900 text-gray-400 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -142,7 +142,7 @@ function CalendarPicker({
       </div>
 
       {/* Quick search */}
-      <div className="w-44 border-l border-gray-100 p-4 flex-shrink-0">
+      <div className="hidden sm:block w-44 border-l border-gray-100 p-4 flex-shrink-0">
         <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-3">Quick Search</p>
         <div className="space-y-0.5">
           {quickLabels.map(({ label, from, to }) => (
@@ -223,7 +223,7 @@ function FilterChip({
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
+        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden max-w-[calc(100vw-1rem)]">
           {children}
         </div>
       )}
@@ -360,12 +360,12 @@ function GalleryCard({ gallery, previews }: { gallery: any; previews: string[] }
       {/* Info */}
       <Link href={`/galleries/${gallery.id}`} className="flex items-center gap-1.5 mt-1.5 min-w-0">
         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${gallery.status === 'published' ? 'bg-green-500' : 'bg-gray-300'}`} />
-        <p className="text-[11px] text-gray-500 flex-shrink-0">{gallery.total_photos ?? 0} files</p>
+        <p className="text-[11px] text-gray-500 flex-shrink-0">{gallery.total_photos ?? 0}</p>
         <p className="text-[11px] font-semibold text-gray-800 uppercase truncate flex-1">{gallery.title}</p>
         {gallery.gallery_type === 'selection' && (
           <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-purple-100 text-purple-700 uppercase flex-shrink-0">Sel</span>
         )}
-        <p className="text-[11px] text-gray-400 flex-shrink-0">{formatDate(gallery.created_at)}</p>
+        <p className="text-[11px] text-gray-400 flex-shrink-0 hidden sm:block">{formatDate(gallery.created_at)}</p>
       </Link>
 
       {/* Dropdown menu */}
@@ -460,10 +460,11 @@ export function GalleriesClient({ galleries, previewsByGallery }: GalleriesClien
     <div className="min-h-full bg-white">
 
       {/* ── TOP BAR ── */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-xl font-bold text-gray-900 mr-1">Collections</h1>
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-4">
+        <h1 className="text-lg sm:text-xl font-bold text-gray-900 flex-shrink-0">Collections</h1>
 
+        {/* Filter chips — horizontally scrollable on mobile */}
+        <div className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {/* Status */}
           <FilterChip label={statusFilter ? (statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)) : 'Status'} active={!!statusFilter}>
             <ListDropdown
@@ -507,8 +508,8 @@ export function GalleriesClient({ galleries, previewsByGallery }: GalleriesClien
 
           {/* Clear all */}
           {anyActive && (
-            <button onClick={clearAll} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors ml-1">
-              <X className="w-3.5 h-3.5" /> Clear filters
+            <button onClick={clearAll} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors flex-shrink-0">
+              <X className="w-3.5 h-3.5" /> Clear
             </button>
           )}
         </div>
@@ -523,7 +524,7 @@ export function GalleriesClient({ galleries, previewsByGallery }: GalleriesClien
       </div>
 
       {/* ── GRID ── */}
-      <div className="px-6 py-6">
+      <div className="px-3 sm:px-6 py-4 sm:py-6">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mb-4">

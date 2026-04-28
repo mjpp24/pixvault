@@ -291,7 +291,7 @@ function FinanceDarkScene() {
       exit={{ scale: 0.96, opacity: 0 }}
       transition={{ duration: 1.4, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
-      <div className="w-[42%] h-full flex flex-col justify-center pr-12 gap-6 opacity-75">
+      <div className="hidden sm:flex w-[42%] h-full flex-col justify-center pr-12 gap-6 opacity-75">
         <div>
           <p className="text-white/40 text-xs font-semibold uppercase tracking-[0.2em] mb-2">Revenue this month</p>
           <p className="text-5xl font-bold text-white leading-none">₦284,500</p>
@@ -344,7 +344,7 @@ function InvoiceDarkScene() {
       exit={{ scale: 0.96, opacity: 0 }}
       transition={{ duration: 1.4, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
-      <div className="w-[38%] pr-12 opacity-75">
+      <div className="hidden sm:block w-[38%] pr-12 opacity-75">
         <div className="border border-white/10 rounded-2xl overflow-hidden bg-white/5 backdrop-blur-sm">
           <div className="px-6 py-5 border-b border-white/10 flex items-start justify-between">
             <div>
@@ -409,21 +409,21 @@ function HeroFullBg({ scene, setScene }: { scene: number; setScene: (n: number) 
       </div>
 
       {/* Scene indicator pills — bottom-center */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5">
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 sm:gap-2.5 px-4">
         {HERO_SCENES.map((s, i) => {
           const Icon = s.icon
           return (
             <button
               key={s.id}
               onClick={() => setScene(i)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 border ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs font-medium transition-all duration-300 border whitespace-nowrap ${
                 scene === i
                   ? 'bg-white/10 border-white/30 text-white backdrop-blur-sm'
                   : 'border-white/10 text-white/35 hover:text-white/60 hover:border-white/20'
               }`}
             >
               <Icon size={11} />
-              {s.label}
+              <span className="hidden xs:inline sm:inline">{s.label}</span>
             </button>
           )
         })}
@@ -561,14 +561,16 @@ export default function HomePage() {
         {/* Full-screen cycling background */}
         <HeroFullBg scene={heroScene} setScene={setHeroScene} />
 
-        {/* Gradient overlay — heavy on the left for text, fades right */}
+        {/* Gradient overlay — full cover on mobile, fades right on desktop */}
         <div
           className="absolute inset-0 z-10 pointer-events-none"
           style={{
             background:
-              'linear-gradient(to right, #080c10 38%, rgba(8,12,16,0.82) 55%, rgba(8,12,16,0.35) 75%, transparent 100%)',
+              'linear-gradient(to right, #080c10 60%, rgba(8,12,16,0.88) 72%, rgba(8,12,16,0.55) 84%, rgba(8,12,16,0.2) 100%)',
           }}
         />
+        {/* Extra mobile overlay so text stays readable on narrow screens */}
+        <div className="absolute inset-0 z-10 pointer-events-none sm:hidden" style={{ background: 'rgba(8,12,16,0.45)' }} />
         {/* Top + bottom fades */}
         <div
           className="absolute top-0 left-0 right-0 h-32 z-10 pointer-events-none"

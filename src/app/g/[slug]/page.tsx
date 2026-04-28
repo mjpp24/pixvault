@@ -93,9 +93,15 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
     .eq('gallery_id', gallery.id)
     .order('display_order', { ascending: true })
 
+  // Fix blurry cover: if cover_photo_url points to a _thumb.jpg, swap for full-res
+  const galleryData = gallery as any
+  if (galleryData.cover_photo_url?.includes('_thumb.jpg')) {
+    galleryData.cover_photo_url = galleryData.cover_photo_url.replace('_thumb.jpg', '.jpg')
+  }
+
   return (
     <ClientGalleryView
-      gallery={gallery as any}
+      gallery={galleryData}
       media={media ?? []}
     />
   )

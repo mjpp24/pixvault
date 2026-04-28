@@ -691,7 +691,7 @@ export function ClientGalleryView({ gallery, media }: ClientGalleryViewProps) {
       {/* ── HERO ── */}
       <div className="relative h-screen min-h-[600px] max-h-[900px] overflow-hidden flex flex-col items-center justify-center">
         {gallery.cover_photo_url ? (
-          <img src={gallery.cover_photo_url} alt={gallery.title} className="absolute inset-0 w-full h-full object-cover" fetchPriority="high" decoding="async" />
+          <img src={gallery.cover_photo_url} alt={gallery.title} className="absolute inset-0 w-full h-full object-cover" fetchPriority="high" decoding="async" style={{ imageRendering: 'auto' }} />
         ) : (
           <div className="absolute inset-0 bg-gray-900" />
         )}
@@ -882,19 +882,20 @@ export function ClientGalleryView({ gallery, media }: ClientGalleryViewProps) {
               const roundClass = getRoundClass(gallery.grid_roundness)
               const aboveFold = index < 6
 
+              const itemStyle = getItemStyle(index, layout)
+
               return (
                 <div
                   key={item.id}
-                  className={`relative bg-gray-900 overflow-hidden cursor-pointer group transition-all ${roundClass} ${
-                    isSelected ? 'brightness-90' : ''
-                  }`}
-                  style={getItemStyle(index, layout)}
+                  className={`cursor-pointer group ${isSelected ? 'brightness-90' : ''}`}
+                  style={itemStyle}
                   onClick={() => setLightboxIndex(index)}
                 >
+                  <div className={`relative bg-gray-900 overflow-hidden w-full h-full ${roundClass}`}>
                   <img
                     src={urls?.thumb ?? ''}
                     alt={item.file_name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-full object-contain block transition-opacity duration-200 group-hover:opacity-90"
                     loading={aboveFold ? 'eager' : 'lazy'}
                     fetchPriority={aboveFold ? 'high' : 'auto'}
                     decoding="async"
@@ -951,6 +952,7 @@ export function ClientGalleryView({ gallery, media }: ClientGalleryViewProps) {
                   {/* Hover zoom */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 z-10">
                     <ZoomIn className="w-7 h-7 text-white drop-shadow-lg" />
+                  </div>
                   </div>
                 </div>
               )

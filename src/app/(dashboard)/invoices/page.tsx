@@ -38,15 +38,15 @@ export default async function InvoicesPage() {
   const currency = invoices?.[0]?.currency ?? 'NGN'
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 sm:space-y-6">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Invoices</h1>
           <p className="text-gray-500 text-sm mt-0.5">{invoices?.length ?? 0} invoices total</p>
         </div>
         <Link
           href="/invoices/new"
-          className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+          className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex-shrink-0"
         >
           <Plus className="w-4 h-4" />
           New Invoice

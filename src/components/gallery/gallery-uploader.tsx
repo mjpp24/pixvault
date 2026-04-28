@@ -35,11 +35,34 @@ const PLAN_LIMITS: Record<string, number> = {
   studio:   1024 * 1024 * 1024 * 1024,       // 1 TB
 }
 
-const MAX_CONCURRENT = 6
+const MAX_CONCURRENT = 10   // true sliding-window pool — keep 10 uploads in flight at all times
+const MAX_COMPRESS_CONCURRENT = 4  // compress ahead-of-upload without overwhelming the CPU
 const MAX_IMAGE_SIZE_RAW = 500 * 1024 * 1024
 // Files < this go via direct XHR (1 round trip). Larger files use TUS resumable.
 const DIRECT_UPLOAD_MAX = 49 * 1024 * 1024
 const TUS_CHUNK_SIZE    = 50 * 1024 * 1024
+
+// Generate a small thumbnail blob (400px, JPEG 75%) for the admin grid
+async function generateThumbnail(file: File): Promise<Blob | null> {
+  if (!['image/jpeg', 'image/jpg', 'image/webp', 'image/png'].includes(file.type)) return null
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const MAX_THUMB = 400
+      let { width, height } = img
+      if (width > height) { height = Math.round((height / width) * MAX_THUMB); width = MAX_THUMB }
+      else { width = Math.round((width / height) * MAX_THUMB); height = MAX_THUMB }
+      const canvas = document.createElement('canvas')
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.75)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
+    img.src = url
+  })
+}
 
 // Only compress standard web images; skip RAW, HEIC, TIFF, videos
 async function compressImage(file: File): Promise<File> {
@@ -231,35 +254,6 @@ export function GalleryUploader({ galleryId, photographerId, galleryType, onUplo
   const setStatus = (id: string, status: UploadFile['status'], error?: string) =>
     setFiles((prev) => prev.map((f) => f.id === id ? { ...f, status, ...(error ? { error } : {}) } : f))
 
-  // token is fetched ONCE in uploadAll and reused across all concurrent uploads
-  const uploadOne = async (item: UploadFile, token: string): Promise<{ storagePath: string } | null> => {
-    const ext = item.file.name.split('.').pop() ?? 'bin'
-    const storagePath = `${photographerId}/${galleryId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-
-    setStatus(item.id, 'uploading')
-    setProgress(item.id, 2)
-
-    try {
-      // Compress standard images; skip everything else
-      const fileToUpload = item.category === 'image' ? await compressImage(item.file) : item.file
-      const contentType = fileToUpload.type || 'application/octet-stream'
-
-      // Upload main file — full network bandwidth, no competing CPU work
-      await uploadToStorage(fileToUpload, storagePath, token, supabaseUrl, contentType,
-        (pct) => setProgress(item.id, pct)
-      )
-
-      setStatus(item.id, 'done')
-      setProgress(item.id, 100)
-      return { storagePath }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Upload failed'
-      setStatus(item.id, 'error', message)
-      return null
-    }
-  }
-
   const runUpload = async (pending: UploadFile[]) => {
     if (pending.length === 0 || isUploading) return
 
@@ -272,17 +266,80 @@ export function GalleryUploader({ galleryId, photographerId, galleryType, onUplo
     const { data: { session } } = await supabase.auth.getSession()
     const token = session?.access_token ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-    const results: ({ storagePath: string; item: UploadFile } | null)[] = []
-    for (let i = 0; i < pending.length; i += MAX_CONCURRENT) {
-      const batch = pending.slice(i, i + MAX_CONCURRENT)
-      const batchResults = await Promise.all(
-        batch.map(async (item) => {
-          const res = await uploadOne(item, token)
-          return res ? { ...res, item } : null
-        })
-      )
-      results.push(...batchResults)
+    // ── Pre-compress images in a parallel pool ahead of uploading ──────────────
+    // Compression runs on CPU; uploading blocks on network. Running them together
+    // means uploads wait on compression. Instead: compress N files ahead of time
+    // so uploads always have ready-to-send data.
+    const compressed = new Map<string, File>()
+    let compressIdx = 0
+    const compressNext = async (): Promise<void> => {
+      const idx = compressIdx++
+      if (idx >= pending.length) return
+      const item = pending[idx]
+      const ready = item.category === 'image' ? await compressImage(item.file) : item.file
+      compressed.set(item.id, ready)
     }
+    // Kick off MAX_COMPRESS_CONCURRENT compression workers
+    await Promise.all(Array.from({ length: Math.min(MAX_COMPRESS_CONCURRENT, pending.length) }, compressNext))
+
+    // ── Sliding-window upload pool ──────────────────────────────────────────────
+    // Unlike fixed batches, as soon as one slot finishes the next file starts
+    // immediately — no dead time waiting for the slowest file in a batch.
+    const results: ({ storagePath: string; thumbnailPath: string | null; item: UploadFile } | null)[] = []
+    let uploadIdx = 0
+
+    const uploadWorker = async (): Promise<void> => {
+      while (true) {
+        const idx = uploadIdx++
+        if (idx >= pending.length) break
+        const item = pending[idx]
+
+        // Ensure this file is compressed before uploading
+        if (!compressed.has(item.id)) {
+          const ready = item.category === 'image' ? await compressImage(item.file) : item.file
+          compressed.set(item.id, ready)
+        }
+
+        const ext = item.file.name.split('.').pop() ?? 'bin'
+        const storagePath = `${photographerId}/${galleryId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+        const fileToUpload = compressed.get(item.id)!
+        const contentType = fileToUpload.type || 'application/octet-stream'
+
+        setStatus(item.id, 'uploading')
+        setProgress(item.id, 2)
+
+        try {
+          await uploadToStorage(fileToUpload, storagePath, token, supabaseUrl, contentType,
+            (pct) => setProgress(item.id, pct))
+
+          // Generate + upload a small thumbnail for instant grid preview
+          let thumbnailPath: string | null = null
+          if (item.category === 'image') {
+            try {
+              const thumbBlob = await generateThumbnail(item.file)
+              if (thumbBlob) {
+                thumbnailPath = storagePath.replace(/\.[^.]+$/, '_thumb.jpg')
+                await directXhr(thumbBlob, thumbnailPath, token, supabaseUrl, 'image/jpeg', () => {})
+              }
+            } catch { /* thumbnail failure never blocks the upload */ }
+          }
+
+          setStatus(item.id, 'done')
+          setProgress(item.id, 100)
+          results.push({ storagePath, thumbnailPath, item })
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Upload failed'
+          setStatus(item.id, 'error', message)
+          results.push(null)
+        }
+
+        compressed.delete(item.id) // free memory as we go
+      }
+    }
+
+    // Spawn MAX_CONCURRENT workers — each grabs the next file as soon as it's free
+    await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT, pending.length) }, uploadWorker))
 
     const mediaRows = results
       .filter((r): r is NonNullable<typeof r> => r !== null)
@@ -290,7 +347,7 @@ export function GalleryUploader({ galleryId, photographerId, galleryType, onUplo
         gallery_id: galleryId,
         photographer_id: photographerId,
         file_url: r.storagePath,
-        thumbnail_url: null,
+        thumbnail_url: r.thumbnailPath ?? null,
         file_name: r.item.file.name,
         file_size: r.item.file.size,
         file_type: (r.item.category === 'video' ? 'video' : 'photo') as 'photo' | 'video',

@@ -9,7 +9,12 @@ import {
   Image,
 } from '@react-pdf/renderer'
 import type { InvoiceRow, InvoiceItemRow, ClientRow, PhotographerRow } from '@/types/database'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
+
+// Helvetica doesn't support ₦ or other special currency symbols — use code + number
+function pdfCurrency(amount: number, currency: string): string {
+  return `${currency} ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
 
 interface InvoicePdfProps {
   invoice: InvoiceRow
@@ -291,10 +296,10 @@ export function InvoicePdfDocument({ invoice, photographer, items, client }: Inv
             <Text style={[styles.tableCellText, styles.colDesc]}>{item.description}</Text>
             <Text style={[styles.tableCellText, styles.colQty]}>{item.quantity}</Text>
             <Text style={[styles.tableCellText, styles.colRate]}>
-              {formatCurrency(item.unit_price, currency)}
+              {pdfCurrency(item.unit_price, currency)}
             </Text>
             <Text style={[styles.tableCellBold, styles.colTotal]}>
-              {formatCurrency(item.total, currency)}
+              {pdfCurrency(item.total, currency)}
             </Text>
           </View>
         ))}
@@ -303,37 +308,37 @@ export function InvoicePdfDocument({ invoice, photographer, items, client }: Inv
         <View style={styles.totalsSection}>
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotal</Text>
-            <Text style={styles.totalsValue}>{formatCurrency(invoice.subtotal, currency)}</Text>
+            <Text style={styles.totalsValue}>{pdfCurrency(invoice.subtotal, currency)}</Text>
           </View>
           {discountAmount > 0 && (
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>Discount</Text>
-              <Text style={styles.totalsValue}>-{formatCurrency(discountAmount, currency)}</Text>
+              <Text style={styles.totalsValue}>-{pdfCurrency(discountAmount, currency)}</Text>
             </View>
           )}
           {invoice.tax_amount > 0 && (
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>Tax ({invoice.tax_rate}%)</Text>
-              <Text style={styles.totalsValue}>+{formatCurrency(invoice.tax_amount, currency)}</Text>
+              <Text style={styles.totalsValue}>+{pdfCurrency(invoice.tax_amount, currency)}</Text>
             </View>
           )}
           <View style={[styles.totalBold, { borderTopColor: brandColor }]}>
             <Text style={[styles.totalBoldLabel, { color: brandColor }]}>Total</Text>
             <Text style={[styles.totalBoldValue, { color: brandColor }]}>
-              {formatCurrency(invoice.total, currency)}
+              {pdfCurrency(invoice.total, currency)}
             </Text>
           </View>
           {invoice.amount_paid > 0 && (
             <View style={[styles.totalsRow, { marginTop: 6 }]}>
               <Text style={styles.totalsLabel}>Amount Paid</Text>
-              <Text style={styles.totalsValue}>-{formatCurrency(invoice.amount_paid, currency)}</Text>
+              <Text style={styles.totalsValue}>-{pdfCurrency(invoice.amount_paid, currency)}</Text>
             </View>
           )}
           {invoice.balance_due > 0 && (
             <View style={styles.balanceDue}>
               <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#d97706' }}>Balance Due</Text>
               <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#d97706' }}>
-                {formatCurrency(invoice.balance_due, currency)}
+                {pdfCurrency(invoice.balance_due, currency)}
               </Text>
             </View>
           )}

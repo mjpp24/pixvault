@@ -101,24 +101,22 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             {greeting}, {firstName} 👋
           </h1>
           <p className="text-gray-500 text-sm mt-0.5">Here&apos;s what&apos;s happening with your business</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/galleries/new"
-            className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Gallery
-          </Link>
-        </div>
+        <Link
+          href="/galleries/new"
+          className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex-shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          New Gallery
+        </Link>
       </div>
 
       {/* Stats */}
@@ -160,7 +158,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {[
           { label: 'Create Gallery', href: '/galleries/new', icon: '🖼️' },
           { label: 'New Invoice', href: '/invoices/new', icon: '📄' },
@@ -170,10 +168,10 @@ export default async function DashboardPage() {
           <Link
             key={action.label}
             href={action.href}
-            className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:shadow-sm hover:border-green-200 transition-all"
+            className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white border border-gray-100 rounded-xl hover:shadow-sm hover:border-green-200 transition-all min-w-0"
           >
-            <span className="text-xl">{action.icon}</span>
-            <span className="text-sm font-medium text-gray-700">{action.label}</span>
+            <span className="text-lg sm:text-xl flex-shrink-0">{action.icon}</span>
+            <span className="text-xs sm:text-sm font-medium text-gray-700 leading-tight">{action.label}</span>
           </Link>
         ))}
       </div>

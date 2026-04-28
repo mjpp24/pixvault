@@ -249,6 +249,7 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
   const [renamingItem, setRenamingItem] = useState<GalleryMedia | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   const [musicUrl, setMusicUrl] = useState<string | null>(gallery.background_music_url ?? null)
   const [musicUploading, setMusicUploading] = useState(false)
   const photoMenuRef = useRef<HTMLDivElement>(null)
@@ -260,10 +261,20 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
   const supabase = createClient()
   const router = useRouter()
 
-  const galleryUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/g/${gallery.slug}`
+  const galleryUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://pixvault-kohl.vercel.app'}/g/${gallery.slug}`
 
   const getPublicUrl = useCallback((path: string) => {
     const { data } = supabase.storage.from('gallery-media').getPublicUrl(path)
+    return data.publicUrl
+  }, [supabase])
+
+  // Returns a fast-loading ~400px thumbnail URL for grid display.
+  // Uses stored thumbnail_url if available, otherwise falls back to
+  // Supabase's built-in image transform (works on free tier, no addon needed).
+  const getThumbUrl = useCallback((path: string) => {
+    const { data } = supabase.storage.from('gallery-media').getPublicUrl(path, {
+      transform: { width: 400, quality: 70 },
+    })
     return data.publicUrl
   }, [supabase])
 
@@ -418,8 +429,7 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
     if (!g?.cover_photo_url && data && data.length > 0) {
       const firstPhoto = data.find((m) => m.file_type === 'photo')
       if (firstPhoto) {
-        const displayPath = firstPhoto.thumbnail_url ?? firstPhoto.file_url
-        const { data: { publicUrl } } = supabase.storage.from('gallery-media').getPublicUrl(displayPath)
+        const { data: { publicUrl } } = supabase.storage.from('gallery-media').getPublicUrl(firstPhoto.file_url)
         const { error } = await supabase.from('galleries').update({ cover_photo_url: publicUrl }).eq('id', gallery.id)
         if (!error) setCoverPath(publicUrl)
       }
@@ -493,32 +503,29 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
     <div className="flex flex-col h-full overflow-hidden">
 
       {/* ── TOP BAR ── */}
-      <div className="flex items-center gap-4 px-5 py-3 border-b border-gray-100 bg-white flex-shrink-0">
-        <Link href="/galleries" className="p-1.5 text-gray-400 hover:text-gray-700 transition-colors">
+      <div className="flex items-center gap-2 px-3 sm:px-5 py-3 border-b border-gray-100 bg-white flex-shrink-0">
+        <Link href="/galleries" className="p-1.5 text-gray-400 hover:text-gray-700 transition-colors flex-shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <h1 className="font-bold text-gray-900 text-base truncate uppercase tracking-wide">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <h1 className="font-bold text-gray-900 text-sm sm:text-base truncate uppercase tracking-wide">
             {gallery.title}
           </h1>
           <StatusPill status={gallery.status} galleryId={gallery.id} />
-          {gallery.gallery_type === 'selection' ? (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 uppercase tracking-wide flex-shrink-0">Selection</span>
-          ) : (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 uppercase tracking-wide flex-shrink-0">Delivery</span>
-          )}
-          {gallery.event_date && (
-            <span className="text-xs text-gray-400 hidden sm:block">{formatDate(gallery.event_date)}</span>
-          )}
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 hidden sm:inline ${gallery.gallery_type === 'selection' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}`}>
+            {gallery.gallery_type === 'selection' ? 'Selection' : 'Delivery'}
+          </span>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {/* More dropdown */}
           <div ref={moreMenuRef} className="relative">
             <button
               onClick={() => setMoreMenuOpen(o => !o)}
-              className="flex items-center gap-1.5 text-sm font-medium text-gray-600 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1 text-sm font-medium text-gray-600 px-2 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              More <ChevronDown className={`w-3.5 h-3.5 transition-transform ${moreMenuOpen ? 'rotate-180' : ''}`} />
+              <MoreHorizontal className="w-4 h-4" />
+              <span className="hidden sm:inline">More</span>
+              <ChevronDown className={`w-3 h-3 transition-transform hidden sm:block ${moreMenuOpen ? 'rotate-180' : ''}`} />
             </button>
             {moreMenuOpen && (
               <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
@@ -528,6 +535,13 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
                 >
                   <Music className="w-4 h-4 text-gray-400" /> Add Music
                 </button>
+                {gallery.status === 'published' && (
+                  <a href={galleryUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors sm:hidden"
+                  >
+                    <Eye className="w-4 h-4 text-gray-400" /> Preview
+                  </a>
+                )}
                 <button
                   onClick={async () => {
                     setMoreMenuOpen(false)
@@ -556,15 +570,15 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
           </div>
           {gallery.status === 'published' && (
             <a href={galleryUrl} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-sm font-medium text-gray-600 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-gray-600 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
               <Eye className="w-3.5 h-3.5" /> Preview
             </a>
           )}
           <button
             onClick={() => { setTab('share'); copyLink() }}
-            className="flex items-center gap-1.5 text-sm font-semibold text-white bg-green-600 px-4 py-1.5 rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-white bg-green-600 px-3 sm:px-4 py-1.5 rounded-lg hover:bg-green-700 transition-colors"
           >
-            <Share2 className="w-3.5 h-3.5" /> Share
+            <Share2 className="w-3.5 h-3.5" /> <span className="hidden xs:inline">Share</span>
           </button>
         </div>
       </div>
@@ -572,8 +586,8 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
       {/* ── BODY ── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        {/* ── LEFT SIDEBAR ── */}
-        <aside className="w-64 flex-shrink-0 border-r border-gray-100 bg-white flex flex-col overflow-hidden">
+        {/* ── LEFT SIDEBAR (desktop only) ── */}
+        <aside className="hidden md:flex w-64 flex-shrink-0 border-r border-gray-100 bg-white flex-col overflow-hidden">
           {/* Cover photo */}
           <div className="relative group h-44 bg-gray-100 flex-shrink-0 overflow-hidden cursor-pointer"
             onClick={() => { /* could open file picker */ }}>
@@ -791,7 +805,7 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
         </aside>
 
         {/* ── MAIN CONTENT ── */}
-        <main className={`flex-1 min-w-0 bg-white ${tab === 'settings' && settingsOption === 'design' ? 'flex overflow-hidden' : 'overflow-y-auto'}`}>
+        <main className={`flex-1 min-w-0 bg-white pb-16 md:pb-0 ${tab === 'settings' && settingsOption === 'design' ? 'flex overflow-hidden' : 'overflow-y-auto'}`}>
 
           {/* PHOTOS main content */}
           {tab === 'photos' && (
@@ -828,7 +842,10 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
                   }}>
                     {sortedMedia.map((item, index) => {
                       const url = getPublicUrl(item.file_url)
-                      const thumb = item.thumbnail_url ? getPublicUrl(item.thumbnail_url) : url
+                      // Use stored thumbnail → Supabase transform (400px) → full URL
+                      const thumb = item.thumbnail_url
+                        ? getPublicUrl(item.thumbnail_url)
+                        : getThumbUrl(item.file_url)
                       const isCover = getPublicUrl(item.file_url) === coverPath
                       const roundClass = getRoundClass(gallery.grid_roundness)
 
@@ -837,8 +854,8 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
                       const hasThumb = !!item.thumbnail_url
 
                       return (
-                        <div key={item.id} className="group" style={{ aspectRatio: '1' }}>
-                          <div className={`relative bg-gray-100 overflow-hidden ${roundClass}`} style={{ height: '100%', width: '100%' }}>
+                        <div key={item.id} className="group" style={{ aspectRatio: '3/4' }}>
+                          <div className={`relative bg-gray-800 overflow-hidden ${roundClass}`} style={{ height: '100%', width: '100%' }}>
                             {item.file_type === 'photo' ? (
                               isRawFile && !hasThumb ? (
                                 // RAW file — thumbnail being generated in background
@@ -855,7 +872,7 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
                                 </div>
                               ) : (
                                 <img src={thumb} alt={item.file_name}
-                                  className="w-full h-full object-cover cursor-pointer group-hover:brightness-90 transition-all"
+                                  className="w-full h-full object-contain cursor-pointer group-hover:opacity-90 transition-all"
                                   onClick={() => setLightboxIndex(index)}
                                   loading="lazy"
                                 />
@@ -1077,6 +1094,177 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
             </div>
           )}
         </main>
+
+        {/* ── MOBILE BOTTOM DRAWER ── */}
+        {mobileDrawerOpen && (
+          <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/40" onClick={() => setMobileDrawerOpen(false)} />
+            {/* Sheet */}
+            <div className="relative bg-white rounded-t-2xl max-h-[75vh] flex flex-col overflow-hidden shadow-2xl">
+              {/* Handle */}
+              <div className="flex-shrink-0 flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full bg-gray-200" />
+              </div>
+              {/* Tab icons row */}
+              <div className="flex border-b border-gray-100 flex-shrink-0 px-4">
+                {SIDEBAR_TABS.map(({ id, Icon, label }) => (
+                  <button
+                    key={id}
+                    onClick={() => setTab(id)}
+                    className={`flex-1 flex flex-col items-center gap-1 py-2 border-b-2 transition-colors ${
+                      tab === id ? 'border-green-600 text-green-600' : 'border-transparent text-gray-400'
+                    }`}
+                  >
+                    <Icon style={{ width: 18, height: 18 }} />
+                    <span className="text-[10px] font-medium">{label}</span>
+                  </button>
+                ))}
+              </div>
+              {/* Sidebar content (scrollable) */}
+              <div className="flex-1 overflow-y-auto">
+                {/* PHOTOS tab */}
+                {tab === 'photos' && (
+                  <div className="p-4">
+                    <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-3">Photos</p>
+                    <div className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-gray-50 border border-gray-200 mb-3">
+                      <span className="text-sm font-medium text-gray-800">Highlights ({media.length})</span>
+                    </div>
+                    {(gallery as any).clients && (
+                      <div className="pt-3 border-t border-gray-100">
+                        <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-2">Client</p>
+                        <p className="text-sm font-semibold text-gray-800">{(gallery as any).clients.name}</p>
+                        <p className="text-xs text-gray-400">{(gallery as any).clients.email}</p>
+                        <Link href={`/galleries/${gallery.id}/selections`} className="mt-2 flex items-center gap-1.5 text-xs text-green-600 hover:underline font-medium">
+                          <CheckSquare className="w-3 h-3" /> View selections
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* SHARE tab */}
+                {tab === 'share' && (
+                  <div className="p-4 space-y-4">
+                    <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">Protection</p>
+                    <div onClick={() => setPreviewBeforePayment(!previewBeforePayment)}
+                      className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${previewBeforePayment ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center mt-0.5 flex-shrink-0 ${previewBeforePayment ? 'bg-green-600 border-green-600' : 'border-gray-300'}`}>
+                        {previewBeforePayment && <Check className="w-2.5 h-2.5 text-white" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-900">Allow preview before payment</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Client can browse but not download</p>
+                      </div>
+                    </div>
+                    <div onClick={() => setWatermarkEnabled(!watermarkEnabled)}
+                      className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${watermarkEnabled ? 'border-amber-500 bg-amber-50' : 'border-gray-200'}`}>
+                      <div className={`w-4 h-4 rounded border-2 flex items-center justify-center mt-0.5 flex-shrink-0 ${watermarkEnabled ? 'bg-amber-500 border-amber-500' : 'border-gray-300'}`}>
+                        {watermarkEnabled && <Check className="w-2.5 h-2.5 text-white" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-900">Watermark previews</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">PREVIEW stamp on every photo</p>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-semibold text-gray-700">Payment amount</p>
+                      <div className="flex gap-2">
+                        <input type="number" value={lockAmount} onChange={e => setLockAmount(e.target.value)} placeholder="e.g. 50000"
+                          className="flex-1 h-9 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                        <select value={lockCurrency} onChange={e => setLockCurrency(e.target.value)}
+                          className="h-9 rounded-lg border border-gray-200 px-2 text-sm focus:outline-none">
+                          {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-semibold text-gray-700">Message to client</p>
+                      <textarea value={lockMessage} onChange={e => setLockMessage(e.target.value)} rows={2}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
+                    </div>
+                    <button onClick={saveProtect} disabled={isSaving}
+                      className="w-full py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-60 flex items-center justify-center gap-2">
+                      {isSaving ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving...</> : 'Save Settings'}
+                    </button>
+                    {(gallery.is_locked || !gallery.allow_download) && (
+                      <button onClick={approvePayment} disabled={isSaving}
+                        className="w-full py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-60 flex items-center justify-center gap-2">
+                        <Unlock className="w-3.5 h-3.5" /> Approve & Unlock
+                      </button>
+                    )}
+                  </div>
+                )}
+                {/* SETTINGS tab */}
+                {tab === 'settings' && (
+                  <div className="p-4 space-y-1">
+                    <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-3">Options</p>
+                    {([
+                      { id: 'design' as SettingsOption, label: 'Design', icon: ImageIcon },
+                      { id: 'downloads' as SettingsOption, label: 'Downloads', icon: ArrowUpDown },
+                      { id: 'selections' as SettingsOption, label: 'Selections', icon: CheckSquare },
+                      { id: 'payments' as SettingsOption, label: 'Payments', icon: Shield },
+                      { id: 'music' as SettingsOption, label: 'Music', icon: Music },
+                    ]).map(({ id, label, icon: Icon }) => (
+                      <button key={id} onClick={() => { setSettingsOption(id); setMobileDrawerOpen(false) }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${settingsOption === id ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+                        <Icon className={`flex-shrink-0 ${settingsOption === id ? 'text-green-500' : 'text-gray-400'}`} style={{ width: 16, height: 16 }} />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* ANALYTICS tab */}
+                {tab === 'analytics' && (
+                  <div className="p-4 space-y-1">
+                    <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-3">Analytics</p>
+                    {[{ label: 'Downloads', value: 0 }, { label: 'Selections', value: 0 }, { label: 'Payments', value: 0 }, { label: 'Views', value: gallery.views ?? 0 }]
+                      .map(({ label, value }) => (
+                        <div key={label} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-gray-50 text-sm">
+                          <span className="text-gray-600 font-medium">{label}</span>
+                          <span className="font-bold text-gray-900">{value}</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+              {/* Bottom actions */}
+              <div className="border-t border-gray-100 p-3 flex gap-2 flex-shrink-0">
+                <a href={galleryUrl} target="_blank" rel="noopener noreferrer"
+                  className="flex-1 text-center text-xs border border-gray-200 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-50 font-medium flex items-center justify-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5" /> View
+                </a>
+                <button onClick={copyLink}
+                  className="flex-1 text-xs bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-semibold flex items-center justify-center gap-1.5">
+                  {copied ? <><Check className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy Link</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MOBILE BOTTOM TAB BAR ── */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 flex">
+          {SIDEBAR_TABS.map(({ id, Icon, label }) => (
+            <button
+              key={id}
+              onClick={() => {
+                if (tab === id && mobileDrawerOpen) {
+                  setMobileDrawerOpen(false)
+                } else {
+                  setTab(id)
+                  setMobileDrawerOpen(true)
+                }
+              }}
+              className={`flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors ${
+                tab === id && mobileDrawerOpen ? 'text-green-600' : 'text-gray-400'
+              }`}
+            >
+              <Icon style={{ width: 20, height: 20 }} />
+              <span className="text-[10px] font-medium">{label}</span>
+            </button>
+          ))}
+        </nav>
+
       </div>
 
       {/* Hidden file input for Replace photo */}

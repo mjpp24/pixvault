@@ -11,8 +11,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: 'Invoice' }
 }
 
-export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function InvoiceDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ send?: string }> }) {
   const { id } = await params
+  const { send } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -119,7 +120,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             ))}
           </div>
 
-          <InvoiceActions invoice={invoice as any} photographerId={user.id} />
+          <InvoiceActions invoice={invoice as any} photographerId={user.id} autoOpenSend={send === '1'} />
 
           {/* Public link */}
           <div className="bg-white rounded-xl border border-gray-100 p-5">

@@ -38,8 +38,8 @@ export function getItemStyle(index: number, layout: string): CSSProperties {
     case 'masonry': {
       const col = index % 3
       if (col === 0) return { aspectRatio: '2/3' }
-      if (col === 1) return { aspectRatio: '4/3' }
-      return { aspectRatio: '1' }
+      if (col === 1) return { aspectRatio: '3/4' }
+      return { aspectRatio: '3/4' }
     }
     case 'magazine': {
       const pos = index % 4
@@ -49,28 +49,28 @@ export function getItemStyle(index: number, layout: string): CSSProperties {
     case 'spotlight': {
       const pos = index % 4
       if (pos === 0) return { gridColumn: '1 / -1', aspectRatio: '16/7' }
-      return { aspectRatio: '1' }
+      return { aspectRatio: '3/4' }
     }
     case 'editorial': {
       const pos = index % 5
       if (pos === 0) return { gridColumn: 'span 2', aspectRatio: '16/9' }
       if (pos === 1) return { aspectRatio: '4/5' }
-      return { aspectRatio: '1' }
+      return { aspectRatio: '3/4' }
     }
     case 'mosaic': {
       const pos = index % 5
       if (pos === 0) return { gridColumn: 'span 2', aspectRatio: '4/3' }
-      return { aspectRatio: '1' }
+      return { aspectRatio: '3/4' }
     }
     case 'gallery-wall': {
       const pos = index % 7
       if (pos === 0) return { gridColumn: 'span 2', aspectRatio: '4/3' }
       if (pos === 4) return { gridColumn: 'span 2', aspectRatio: '16/9' }
-      return { aspectRatio: '1' }
+      return { aspectRatio: '3/4' }
     }
     case 'panoramic': return { aspectRatio: '21/9' }
     case 'film':      return { aspectRatio: '3/4' }
-    case 'duo':       return { aspectRatio: '1' }
-    default:          return { aspectRatio: '1' } // classic-grid
+    case 'duo':       return { aspectRatio: '3/4' }
+    default:          return { aspectRatio: '3/4' } // classic-grid — matches admin preview ratio
   }
 }
