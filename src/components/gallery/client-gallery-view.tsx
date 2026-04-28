@@ -887,11 +887,11 @@ export function ClientGalleryView({ gallery, media }: ClientGalleryViewProps) {
               return (
                 <div
                   key={item.id}
-                  className={`cursor-pointer group ${isSelected ? 'brightness-90' : ''}`}
+                  className={`relative cursor-pointer group ${isSelected ? 'brightness-90' : ''}`}
                   style={itemStyle}
                   onClick={() => setLightboxIndex(index)}
                 >
-                  <div className={`relative bg-gray-900 overflow-hidden w-full h-full ${roundClass}`}>
+                  <div className={`absolute inset-0 bg-gray-900 overflow-hidden ${roundClass}`}>
                   <img
                     src={urls?.thumb ?? ''}
                     alt={item.file_name}

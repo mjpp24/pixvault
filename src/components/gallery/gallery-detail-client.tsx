@@ -854,8 +854,8 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
                       const hasThumb = !!item.thumbnail_url
 
                       return (
-                        <div key={item.id} className="group" style={{ aspectRatio: '3/4' }}>
-                          <div className={`relative bg-gray-800 overflow-hidden ${roundClass}`} style={{ height: '100%', width: '100%' }}>
+                        <div key={item.id} className="group relative" style={{ aspectRatio: '3/4' }}>
+                          <div className={`absolute inset-0 bg-gray-800 overflow-hidden ${roundClass}`}>
                             {item.file_type === 'photo' ? (
                               isRawFile && !hasThumb ? (
                                 // RAW file — thumbnail being generated in background
