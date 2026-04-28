@@ -838,15 +838,15 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
                   <div style={{ columnCount: 4, columnGap: '6px' }}>
                     {sortedMedia.map((item, index) => {
                       const url = getPublicUrl(item.file_url)
-                      // Use stored thumbnail → Supabase transform (400px) → full URL
-                      const thumb = item.thumbnail_url
+                      const ext = item.file_name.split('.').pop()?.toLowerCase() ?? ''
+                      const isRawFile = RAW_EXTENSIONS.has(ext)
+                      // RAW files use stored JPEG thumbnail (no transform possible on RAW).
+                      // Regular photos always use Supabase transform for full sharpness.
+                      const thumb = isRawFile && item.thumbnail_url
                         ? getPublicUrl(item.thumbnail_url)
                         : getThumbUrl(item.file_url)
                       const isCover = getPublicUrl(item.file_url) === coverPath
                       const roundClass = getRoundClass(gallery.grid_roundness)
-
-                      const ext = item.file_name.split('.').pop()?.toLowerCase() ?? ''
-                      const isRawFile = RAW_EXTENSIONS.has(ext)
                       const hasThumb = !!item.thumbnail_url
 
                       return (
