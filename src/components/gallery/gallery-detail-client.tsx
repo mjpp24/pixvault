@@ -835,11 +835,7 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
               {/* Photo grid — compact admin view: small tiles, no horizontal scroll */}
               {sortedMedia.length > 0 && (
                 <div className="px-3 pb-6">
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                    gap: '6px',
-                  }}>
+                  <div style={{ columnCount: 4, columnGap: '6px' }}>
                     {sortedMedia.map((item, index) => {
                       const url = getPublicUrl(item.file_url)
                       // Use stored thumbnail → Supabase transform (400px) → full URL
@@ -854,13 +850,14 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
                       const hasThumb = !!item.thumbnail_url
 
                       return (
-                        <div key={item.id} className="group relative" style={{ aspectRatio: '3/4' }}>
-                          <div className={`absolute inset-0 bg-gray-800 overflow-hidden ${roundClass}`}>
+                        <div key={item.id} className="group break-inside-avoid mb-1.5">
+                          <div className={`relative bg-gray-800 overflow-hidden ${roundClass}`}>
                             {item.file_type === 'photo' ? (
                               isRawFile && !hasThumb ? (
                                 // RAW file — thumbnail being generated in background
                                 <div
-                                  className="w-full h-full flex flex-col items-center justify-center bg-gray-100 cursor-pointer gap-2 animate-pulse"
+                                  className="w-full flex flex-col items-center justify-center bg-gray-100 cursor-pointer gap-2 animate-pulse"
+                                  style={{ aspectRatio: '3/4' }}
                                   onClick={() => setLightboxIndex(index)}
                                 >
                                   <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -872,9 +869,10 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
                                 </div>
                               ) : (
                                 <img src={thumb} alt={item.file_name}
-                                  className="w-full h-full object-contain cursor-pointer group-hover:opacity-90 transition-all"
+                                  className="w-full h-auto block cursor-pointer group-hover:opacity-90 transition-opacity"
                                   onClick={() => setLightboxIndex(index)}
                                   loading="lazy"
+                                  decoding="async"
                                 />
                               )
                             ) : (
