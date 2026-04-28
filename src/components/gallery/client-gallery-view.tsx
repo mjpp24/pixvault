@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import type { GalleryRow, GalleryMedia, PhotographerRow } from '@/types/database'
 import { GalleryLightbox } from './gallery-lightbox'
 import { createClient } from '@/lib/supabase/client'
-import { getLayoutContainerStyle, getItemStyle, getGapPx, getRoundClass, isNaturalLayout } from '@/lib/gallery-layout'
+import { getLayoutContainerStyle, getItemStyle, getGapPx, getRoundClass } from '@/lib/gallery-layout'
 import { DiamondWatermark } from './diamond-watermark'
 
 interface ClientGalleryViewProps {
@@ -881,81 +881,8 @@ export function ClientGalleryView({ gallery, media }: ClientGalleryViewProps) {
               const layout = gallery.gallery_layout ?? 'classic-grid'
               const roundClass = getRoundClass(gallery.grid_roundness)
               const aboveFold = index < 6
-              const gapPx = getGapPx(gallery.grid_spacing)
-              const natural = isNaturalLayout(layout)
-
-              // ── Shared overlay content ──────────────────────────────────────
-              const overlays = (
-                <>
-                  {(gallery.gallery_type === 'selection' || !gallery.allow_download) && (
-                    <DiamondWatermark filename={item.file_name} />
-                  )}
-                  {isSelected && (
-                    <div className="absolute inset-0 ring-4 ring-green-400 ring-inset pointer-events-none" />
-                  )}
-                  {selectionMode && (
-                    <button
-                      className="absolute top-2.5 right-2.5 z-20"
-                      onClick={(e) => { e.stopPropagation(); toggleSelect(item.id) }}
-                    >
-                      {isSelected ? (
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center shadow-lg bg-green-500">
-                          <Check className="w-4 h-4 text-white" />
-                        </div>
-                      ) : (
-                        <div className="w-7 h-7 rounded-full border-2 border-white/70 bg-black/30 shadow-lg group-hover:border-white" />
-                      )}
-                    </button>
-                  )}
-                  {selectionMode && (
-                    <div className="absolute bottom-2.5 left-2.5 z-20 flex items-center gap-1.5">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setCommentDraft(comments[item.id] ?? '')
-                          setCommentingId(item.id)
-                        }}
-                        className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
-                          hasNote ? 'bg-amber-500 text-white' : 'bg-black/50 text-white/80 hover:bg-black/70'
-                        }`}
-                      >
-                        <MessageSquare className="w-2.5 h-2.5" />
-                        {hasNote ? 'Note' : 'Note'}
-                      </button>
-                    </div>
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 z-10">
-                    <ZoomIn className="w-7 h-7 text-white drop-shadow-lg" />
-                  </div>
-                </>
-              )
-
-              if (natural) {
-                // ── NATURAL LAYOUT: CSS Columns — image shows at its own aspect ratio, zero black bars ──
-                return (
-                  <div
-                    key={item.id}
-                    className={`break-inside-avoid cursor-pointer group ${isSelected ? 'brightness-90' : ''}`}
-                    style={{ marginBottom: `${gapPx}px` }}
-                    onClick={() => setLightboxIndex(index)}
-                  >
-                    <div className={`relative overflow-hidden ${roundClass}`}>
-                      <img
-                        src={urls?.thumb ?? ''}
-                        alt={item.file_name}
-                        className="w-full h-auto block transition-opacity duration-200 group-hover:opacity-90"
-                        loading={aboveFold ? 'eager' : 'lazy'}
-                        fetchPriority={aboveFold ? 'high' : 'auto'}
-                        decoding="async"
-                      />
-                      {overlays}
-                    </div>
-                  </div>
-                )
-              }
-
-              // ── FIXED RATIO LAYOUT: CSS Grid with aspect-ratio tiles ──
               const itemStyle = getItemStyle(index, layout)
+
               return (
                 <div
                   key={item.id}
@@ -963,16 +890,56 @@ export function ClientGalleryView({ gallery, media }: ClientGalleryViewProps) {
                   style={itemStyle}
                   onClick={() => setLightboxIndex(index)}
                 >
-                  <div className={`absolute inset-0 overflow-hidden ${roundClass}`}>
+                  <div className={`absolute inset-0 bg-gray-900 overflow-hidden ${roundClass}`}>
                     <img
                       src={urls?.thumb ?? ''}
                       alt={item.file_name}
-                      className="w-full h-full object-cover block transition-opacity duration-200 group-hover:opacity-90"
+                      className="w-full h-full object-contain block transition-opacity duration-200 group-hover:opacity-90"
                       loading={aboveFold ? 'eager' : 'lazy'}
                       fetchPriority={aboveFold ? 'high' : 'auto'}
                       decoding="async"
                     />
-                    {overlays}
+
+                    {(gallery.gallery_type === 'selection' || !gallery.allow_download) && (
+                      <DiamondWatermark filename={item.file_name} />
+                    )}
+                    {isSelected && (
+                      <div className="absolute inset-0 ring-4 ring-green-400 ring-inset pointer-events-none" />
+                    )}
+                    {selectionMode && (
+                      <button
+                        className="absolute top-2.5 right-2.5 z-20"
+                        onClick={(e) => { e.stopPropagation(); toggleSelect(item.id) }}
+                      >
+                        {isSelected ? (
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center shadow-lg bg-green-500">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        ) : (
+                          <div className="w-7 h-7 rounded-full border-2 border-white/70 bg-black/30 shadow-lg group-hover:border-white" />
+                        )}
+                      </button>
+                    )}
+                    {selectionMode && (
+                      <div className="absolute bottom-2.5 left-2.5 z-20 flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setCommentDraft(comments[item.id] ?? '')
+                            setCommentingId(item.id)
+                          }}
+                          className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
+                            hasNote ? 'bg-amber-500 text-white' : 'bg-black/50 text-white/80 hover:bg-black/70'
+                          }`}
+                        >
+                          <MessageSquare className="w-2.5 h-2.5" />
+                          {hasNote ? 'Note' : 'Note'}
+                        </button>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 z-10">
+                      <ZoomIn className="w-7 h-7 text-white drop-shadow-lg" />
+                    </div>
                   </div>
                 </div>
               )
