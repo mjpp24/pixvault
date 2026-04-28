@@ -161,7 +161,7 @@ export function ClientGalleryView({ gallery, media }: ClientGalleryViewProps) {
       let thumb = full
       if (item.file_type === 'photo') {
         const { data: thumbData } = supabase.storage.from('gallery-media').getPublicUrl(item.file_url, {
-          transform: { width: 800, quality: 75 },
+          transform: { width: 1600, quality: 90 },
         })
         thumb = thumbData.publicUrl
       }

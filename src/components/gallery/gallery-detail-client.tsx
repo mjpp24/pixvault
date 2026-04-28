@@ -273,7 +273,7 @@ export function GalleryDetailClient({ gallery: initialGallery, initialMedia, pho
   // Supabase's built-in image transform (works on free tier, no addon needed).
   const getThumbUrl = useCallback((path: string) => {
     const { data } = supabase.storage.from('gallery-media').getPublicUrl(path, {
-      transform: { width: 400, quality: 70 },
+      transform: { width: 800, quality: 85 },
     })
     return data.publicUrl
   }, [supabase])
