@@ -16,6 +16,7 @@ import {
   LogOut,
   Search,
   Wallet,
+  ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Photographer } from '@/types/database'
@@ -23,6 +24,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { NotificationBell } from './notification-bell'
+import { isAdmin } from '@/lib/admin'
 
 const NAV_ITEMS = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -151,6 +153,28 @@ export function DashboardShell({ children, photographer, isGuest }: DashboardShe
             )
           })}
         </nav>
+
+        {/* Admin link — only visible to the platform owner */}
+        {isAdmin(photographer.email) && (
+          <div className="px-3 pb-2">
+            <Link
+              href="/admin"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                pathname.startsWith('/admin')
+                  ? 'bg-amber-50 text-amber-700'
+                  : 'text-gray-500 hover:bg-amber-50 hover:text-amber-700'
+              )}
+            >
+              <ShieldCheck
+                style={{ width: '18px', height: '18px' }}
+                className={pathname.startsWith('/admin') ? 'text-amber-600' : 'text-gray-400'}
+              />
+              Admin Panel
+            </Link>
+          </div>
+        )}
 
         {/* Sign out */}
         <div className="px-3 py-4 border-t border-gray-100">

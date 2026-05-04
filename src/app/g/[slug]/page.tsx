@@ -99,6 +99,11 @@ export default async function ClientGalleryPage({ params }: { params: Promise<{ 
     galleryData.cover_photo_url = galleryData.cover_photo_url.replace('_thumb.jpg', '.jpg')
   }
 
+  // Defensive fallback: photographers join can be null if RLS hasn't propagated yet
+  if (!galleryData.photographers) {
+    galleryData.photographers = {}
+  }
+
   return (
     <ClientGalleryView
       gallery={galleryData}

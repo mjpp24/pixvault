@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { TrendingUp, TrendingDown, Wallet, Plus, ArrowRight, Edit2, Link2 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, Plus, ArrowRight, Link2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { getCategoryDef } from '@/lib/finance'
 import type { FinanceTransaction, FinanceBudget } from '@/types/database'
@@ -20,6 +20,7 @@ interface CategorySpend {
 
 interface FinanceDashboardClientProps {
   currency: string
+  selectedMonth: string  // "YYYY-MM"
   totalIncome: number
   totalExpenses: number
   recentTransactions: FinanceTransaction[]
@@ -125,9 +126,53 @@ function DonutChart({ data, currency }: { data: CategorySpend[]; currency: strin
   )
 }
 
+// ── Month navigator ───────────────────────────────────────────────────────────
+function MonthNavigator({ selectedMonth }: { selectedMonth: string }) {
+  const router = useRouter()
+  const [year, mon] = selectedMonth.split('-').map(Number)
+
+  const now = new Date()
+  const isCurrentMonth = year === now.getFullYear() && mon === now.getMonth() + 1
+
+  const label = new Date(year, mon - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' })
+
+  const navigate = (delta: number) => {
+    const d = new Date(year, mon - 1 + delta, 1)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    router.push(`/finance?month=${y}-${m}`)
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => navigate(-1)}
+        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+        aria-label="Previous month"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+      <span className="text-sm font-medium text-gray-600 min-w-[110px] text-center">{label}</span>
+      <button
+        onClick={() => navigate(1)}
+        disabled={isCurrentMonth}
+        className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
+          isCurrentMonth
+            ? 'text-gray-200 cursor-not-allowed'
+            : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+        }`}
+        aria-label="Next month"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  )
+}
+
 // ── Main dashboard ────────────────────────────────────────────────────────────
 export function FinanceDashboardClient({
   currency,
+  selectedMonth,
   totalIncome,
   totalExpenses,
   recentTransactions,
@@ -145,6 +190,8 @@ export function FinanceDashboardClient({
 
   return (
     <div className="space-y-5">
+      {/* ── Month navigator ── */}
+      <MonthNavigator selectedMonth={selectedMonth} />
       {/* ── Summary cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Link
@@ -158,7 +205,7 @@ export function FinanceDashboardClient({
             </div>
           </div>
           <p className="text-2xl font-bold text-green-600">{formatCurrency(totalIncome, currency)}</p>
-          <p className="text-xs text-gray-400 mt-1">This month · tap to view</p>
+          <p className="text-xs text-gray-400 mt-1">Tap to view</p>
         </Link>
 
         <Link
@@ -172,7 +219,7 @@ export function FinanceDashboardClient({
             </div>
           </div>
           <p className="text-2xl font-bold text-red-500">{formatCurrency(totalExpenses, currency)}</p>
-          <p className="text-xs text-gray-400 mt-1">This month · tap to view</p>
+          <p className="text-xs text-gray-400 mt-1">Tap to view</p>
         </Link>
 
         <div className={`rounded-xl border p-5 ${netBalance >= 0 ? 'bg-green-600 border-green-600' : 'bg-red-500 border-red-500'}`}>
@@ -183,7 +230,7 @@ export function FinanceDashboardClient({
             </div>
           </div>
           <p className="text-2xl font-bold text-white">{formatCurrency(Math.abs(netBalance), currency)}</p>
-          <p className="text-xs text-white/70 mt-1">{netBalance >= 0 ? 'Surplus' : 'Deficit'} this month</p>
+          <p className="text-xs text-white/70 mt-1">{netBalance >= 0 ? 'Surplus' : 'Deficit'}</p>
         </div>
       </div>
 
@@ -202,7 +249,9 @@ export function FinanceDashboardClient({
         <div className="bg-white rounded-xl border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900 text-sm">Spending by Category</h3>
-            <span className="text-xs text-gray-400">This month</span>
+            <span className="text-xs text-gray-400">
+              {new Date(selectedMonth + '-01').toLocaleString('default', { month: 'short', year: 'numeric' })}
+            </span>
           </div>
           <DonutChart data={categorySpending} currency={currency} />
         </div>

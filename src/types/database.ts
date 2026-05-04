@@ -34,6 +34,8 @@ export type PhotographerRow = {
   plan_tier: 'starter' | 'creator' | 'pro' | 'studio'
   storage_used_bytes: number
   video_used_seconds: number
+  promo_plan: 'starter' | 'creator' | 'pro' | 'studio' | null
+  promo_expires_at: string | null
   created_at: string
 }
 
@@ -71,6 +73,8 @@ export type PhotographerInsert = {
   plan_tier?: 'starter' | 'creator' | 'pro' | 'studio'
   storage_used_bytes?: number
   video_used_seconds?: number
+  promo_plan?: 'starter' | 'creator' | 'pro' | 'studio' | null
+  promo_expires_at?: string | null
   created_at?: string
 }
 

@@ -3,11 +3,15 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { FinanceDashboardClient } from '@/components/finance/finance-dashboard-client'
-import { getCurrentMonthRange, getLast6MonthsRanges } from '@/lib/finance'
+import { getMonthRange, getLast6MonthsRanges } from '@/lib/finance'
 
 export const metadata = { title: 'Finance' }
 
-export default async function FinancePage() {
+export default async function FinancePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -19,13 +23,24 @@ export default async function FinancePage() {
     .single()
   const currency = photographer?.currency ?? 'NGN'
 
-  const { start: monthStart, end: monthEnd } = getCurrentMonthRange()
+  // Parse ?month=YYYY-MM, fall back to current month
+  const params = await searchParams
+  const now = new Date()
+  let year = now.getFullYear()
+  let month = now.getMonth() // 0-indexed
+  if (params.month && /^\d{4}-\d{2}$/.test(params.month)) {
+    const [y, m] = params.month.split('-').map(Number)
+    year = y
+    month = m - 1 // back to 0-indexed
+  }
+  const selectedMonth = `${year}-${String(month + 1).padStart(2, '0')}`
+
+  const { start: monthStart, end: monthEnd } = getMonthRange(year, month)
   const sixMonthRanges = getLast6MonthsRanges()
   const sixStart = sixMonthRanges[0].start
 
   const [
     { data: monthTransactions },
-    { data: allRecent },
     { data: sixMonthTx },
     { data: budgets },
   ] = await Promise.all([
@@ -34,14 +49,9 @@ export default async function FinancePage() {
       .select('*')
       .eq('photographer_id', user.id)
       .gte('date', monthStart)
-      .lte('date', monthEnd),
-    supabase
-      .from('finance_transactions')
-      .select('*')
-      .eq('photographer_id', user.id)
+      .lte('date', monthEnd)
       .order('date', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(8),
+      .order('created_at', { ascending: false }),
     supabase
       .from('finance_transactions')
       .select('*')
@@ -57,11 +67,11 @@ export default async function FinancePage() {
   const tx = monthTransactions ?? []
   const allTx = sixMonthTx ?? []
 
-  // Summary
+  // Summary for selected month
   const totalIncome   = tx.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0)
   const totalExpenses = tx.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0)
 
-  // Monthly bar chart data
+  // Monthly bar chart (always last 6 months from today)
   const monthlyData = sixMonthRanges.map(range => {
     const rangeTx = allTx.filter(t => t.date >= range.start && t.date <= range.end)
     return {
@@ -71,7 +81,7 @@ export default async function FinancePage() {
     }
   })
 
-  // Category spending this month
+  // Category spending for selected month
   const categorySpendMap: Record<string, number> = {}
   tx.filter(t => t.type === 'expense').forEach(t => {
     categorySpendMap[t.category] = (categorySpendMap[t.category] ?? 0) + Number(t.amount)
@@ -80,7 +90,7 @@ export default async function FinancePage() {
     .map(([category, amount]) => ({ category, amount }))
     .sort((a, b) => b.amount - a.amount)
 
-  // Budget spending this month
+  // Budget spending for selected month
   const budgetSpending: Record<string, number> = {}
   tx.filter(t => t.type === 'expense').forEach(t => {
     budgetSpending[t.category] = (budgetSpending[t.category] ?? 0) + Number(t.amount)
@@ -89,12 +99,7 @@ export default async function FinancePage() {
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 sm:space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Finance</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
-          </p>
-        </div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Finance</h1>
         <div className="flex gap-2 flex-shrink-0">
           <Link
             href="/finance/budgets"
@@ -115,9 +120,10 @@ export default async function FinancePage() {
 
       <FinanceDashboardClient
         currency={currency}
+        selectedMonth={selectedMonth}
         totalIncome={totalIncome}
         totalExpenses={totalExpenses}
-        recentTransactions={(allRecent ?? []) as any}
+        recentTransactions={tx.slice(0, 8) as any}
         monthlyData={monthlyData}
         categorySpending={categorySpending}
         budgets={(budgets ?? []) as any}

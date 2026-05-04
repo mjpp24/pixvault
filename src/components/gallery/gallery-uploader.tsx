@@ -35,34 +35,12 @@ const PLAN_LIMITS: Record<string, number> = {
   studio:   1024 * 1024 * 1024 * 1024,       // 1 TB
 }
 
-const MAX_CONCURRENT = 10   // true sliding-window pool — keep 10 uploads in flight at all times
+const MAX_CONCURRENT = 15   // true sliding-window pool — keep 15 uploads in flight at all times
 const MAX_COMPRESS_CONCURRENT = 4  // compress ahead-of-upload without overwhelming the CPU
 const MAX_IMAGE_SIZE_RAW = 500 * 1024 * 1024
 // Files < this go via direct XHR (1 round trip). Larger files use TUS resumable.
 const DIRECT_UPLOAD_MAX = 49 * 1024 * 1024
 const TUS_CHUNK_SIZE    = 50 * 1024 * 1024
-
-// Generate a small thumbnail blob (400px, JPEG 75%) for the admin grid
-async function generateThumbnail(file: File): Promise<Blob | null> {
-  if (!['image/jpeg', 'image/jpg', 'image/webp', 'image/png'].includes(file.type)) return null
-  return new Promise((resolve) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const MAX_THUMB = 400
-      let { width, height } = img
-      if (width > height) { height = Math.round((height / width) * MAX_THUMB); width = MAX_THUMB }
-      else { width = Math.round((width / height) * MAX_THUMB); height = MAX_THUMB }
-      const canvas = document.createElement('canvas')
-      canvas.width = width; canvas.height = height
-      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.75)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
-    img.src = url
-  })
-}
 
 // Only compress standard web images; skip RAW, HEIC, TIFF, videos
 async function compressImage(file: File): Promise<File> {
@@ -313,17 +291,8 @@ export function GalleryUploader({ galleryId, photographerId, galleryType, onUplo
           await uploadToStorage(fileToUpload, storagePath, token, supabaseUrl, contentType,
             (pct) => setProgress(item.id, pct))
 
-          // Generate + upload a small thumbnail for instant grid preview
-          let thumbnailPath: string | null = null
-          if (item.category === 'image') {
-            try {
-              const thumbBlob = await generateThumbnail(item.file)
-              if (thumbBlob) {
-                thumbnailPath = storagePath.replace(/\.[^.]+$/, '_thumb.jpg')
-                await directXhr(thumbBlob, thumbnailPath, token, supabaseUrl, 'image/jpeg', () => {})
-              }
-            } catch { /* thumbnail failure never blocks the upload */ }
-          }
+          // Display uses Supabase image transform (getThumbUrl) — no canvas thumbnail needed
+          const thumbnailPath: string | null = null
 
           setStatus(item.id, 'done')
           setProgress(item.id, 100)
